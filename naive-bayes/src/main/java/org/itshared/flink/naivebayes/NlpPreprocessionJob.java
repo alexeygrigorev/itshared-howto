@@ -15,26 +15,25 @@ import org.apache.flink.util.Collector;
 public class NlpPreprocessionJob {
 
 	public static void main(String[] args) throws Exception {
+		String inputPath = Config.TEST_DATA_RAW;
+		String outputPath = Config.TEST_DATA;
+
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		DataSource<String> inputTrain = env.readTextFile(Config.TRAIN_DATA_RAW);
-		DataSet<Tuple2<String, String>> train = inputTrain.flatMap(new NlpProcessingMapper());
-		train.writeAsCsv(Config.TRAIN_DATA, "\n", "\t", WriteMode.OVERWRITE);
+		DataSource<String> input = env.readTextFile(inputPath);
+		DataSet<Tuple2<String, String>> output = input.flatMap(new NlpProcessingMapper());
+		output.writeAsCsv(outputPath, "\n", "\t", WriteMode.OVERWRITE);
 
-		DataSource<String> inputTest = env.readTextFile(Config.TEST_DATA_RAW);
-		DataSet<Tuple2<String, String>> test = inputTest.flatMap(new NlpProcessingMapper());
-		test.writeAsCsv(Config.TRAIN_DATA, "\n", "\t", WriteMode.OVERWRITE);
-
-		env.execute("NLP Preprocession");
+		env.execute("Preprocession");
 	}
 
 	public static class NlpProcessingMapper extends RichFlatMapFunction<String, Tuple2<String, String>> {
 
-		private NlpProcessor processor;
+		private NlpPreprocessor processor;
 
 		@Override
 		public void open(Configuration parameters) throws Exception {
 			super.open(parameters);
-			processor = NlpProcessor.create();
+			processor = NlpPreprocessor.create();
 		}
 
 		@Override

@@ -17,9 +17,18 @@ public class NlpProcessorTest {
 		String first = testData.get(0);
 		String[] split = first.split("\t");
 
-		NlpProcessor processor = NlpProcessor.create();
+		NlpPreprocessor processor = NlpPreprocessor.create();
 
 		List<String> result = processor.processBody(split[2]);
+		System.out.println(result);
+		assertTrue(result.size() > 0);
+	}
+	
+	@Test
+	public void testBadSymbols() throws Exception {
+		NlpPreprocessor processor = NlpPreprocessor.create();
+		String body = "~~~~~~~~ Hello there ~~~~~~~~ !!!";
+		List<String> result = processor.processBody(body);
 		System.out.println(result);
 		assertTrue(result.size() > 0);
 	}

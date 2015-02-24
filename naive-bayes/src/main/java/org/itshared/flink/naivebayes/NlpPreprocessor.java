@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
@@ -18,25 +19,25 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
-public class NlpProcessor {
+public class NlpPreprocessor {
 
 	private StanfordCoreNLP pipeline;
 	private HashSet<String> stopwords;
 
-	private NlpProcessor() {
+	private NlpPreprocessor() {
 	}
 
-	public static NlpProcessor create() {
+	public static NlpPreprocessor create() {
 		try {
 			Properties props = new Properties();
 			props.put("annotators", "tokenize, ssplit, pos, lemma");
 			StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
 
-			NlpProcessor nlpProcessor = new NlpProcessor();
+			NlpPreprocessor nlpProcessor = new NlpPreprocessor();
 			nlpProcessor.pipeline = pipeline;
 
-			InputStream stopwordsStream = NlpProcessor.class.getResourceAsStream("en-stopwords.txt");
-			nlpProcessor.stopwords = new HashSet<>(IOUtils.readLines(stopwordsStream));
+			InputStream stopwordsStream = NlpPreprocessor.class.getResourceAsStream("en-stopwords.txt");
+			nlpProcessor.stopwords = Sets.newHashSet(IOUtils.readLines(stopwordsStream));
 
 			return nlpProcessor;
 		} catch (Exception e) {
@@ -44,7 +45,8 @@ public class NlpProcessor {
 		}
 	}
 
-	public List<String> processBody(String body) {
+	public List<String> processBody(String input) {
+		String body = removeBadSymbols(input);
 		Annotation document = new Annotation(body);
 		pipeline.annotate(document);
 
@@ -71,6 +73,10 @@ public class NlpProcessor {
 		}
 
 		return StringUtils.isAlpha(lemma);
+	}
+
+	private static String removeBadSymbols(String body) {
+		return body.replaceAll("[~^=<>&\\_/]", "");
 	}
 
 }
