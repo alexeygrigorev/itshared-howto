@@ -15,8 +15,8 @@ import org.apache.flink.util.Collector;
 public class NlpPreprocessionJob {
 
 	public static void main(String[] args) throws Exception {
-		String inputPath = Config.TEST_DATA_RAW;
-		String outputPath = Config.TEST_DATA;
+		String inputPath = Config.TRAIN_DATA_RAW;
+		String outputPath = Config.TRAIN_DATA;
 
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		DataSource<String> input = env.readTextFile(inputPath);

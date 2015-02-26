@@ -24,6 +24,7 @@ public class WordCounterJob {
 		// estimate P(class=c)
 		DataSet<Tuple2<String, Long>> labelFrequencies = 
 				input.map(new LabelExtraction()).groupBy(0).sum(1);
+		
 		DataSet<Tuple1<Long>> totalSum = labelFrequencies.sum(1).project(1);
 
 		DataSet<Tuple2<String, Double>> priors = 
@@ -35,10 +36,14 @@ public class WordCounterJob {
 		DataSet<Tuple3<String, String, Integer>> wordCount = 
 				labelledWords.groupBy(1, 0).sum(2);
 		
+		DataSet<Tuple2<String, Integer>> totalCountPerCategory = 
+				labelledWords.groupBy(0).sum(2).project(0, 2);
+
 		priors.writeAsCsv(Config.OUT_PRIOR, "\n", "\t", WriteMode.OVERWRITE);
 		wordCount.writeAsCsv(Config.OUT_COND_COUNT, "\n", "\t", WriteMode.OVERWRITE);
-		
-		env.execute("Naive Bayes Job");
+		totalCountPerCategory.writeAsCsv(Config.OUT_TOTAL_COUNT_PER_CAT, "\n", "\t", WriteMode.OVERWRITE);
+
+		env.execute("Word Counter Job");
 	}
 
 	public static class NormalizationMapper extends
@@ -78,7 +83,6 @@ public class WordCounterJob {
 				out.collect(new Tuple3<>(category, word, 1));
 			}
 		}
-
 	}
 
 }

@@ -55,15 +55,16 @@ public class NlpPreprocessor {
 
 		for (CoreLabel token : tokenized) {
 			String lemma = token.get(LemmaAnnotation.class);
-			if (valid(lemma)) {
-				result.add(lemma.toLowerCase(Locale.ENGLISH));
+			String lowerCaseLemma = lemma.toLowerCase(Locale.ENGLISH);
+			if (valid(lowerCaseLemma)) {
+				result.add(lowerCaseLemma);
 			}
 		}
 
 		return result;
 	}
 
-	private boolean valid(String lemma) {
+	public boolean valid(String lemma) {
 		if (lemma.length() < 2) {
 			return false;
 		}

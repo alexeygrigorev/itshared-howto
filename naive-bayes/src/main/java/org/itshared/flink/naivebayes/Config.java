@@ -11,4 +11,5 @@ public class Config {
 	private static final String OUT_FOLDER = FOLDER + "OUT/";
 	public static final String OUT_PRIOR = OUT_FOLDER + "prior/";
 	public static final String OUT_COND_COUNT = OUT_FOLDER + "cond/";
+	public static final String OUT_TOTAL_COUNT_PER_CAT = OUT_FOLDER + "countPerCat/";
 }
