@@ -42,15 +42,10 @@ object CerealRegression {
     val drmXtX = drmX.t %*% drmX
     val drmXty = drmX.t %*% y
 
-    val XtX = drmXtX.collect
-    val Xty = drmXty.collect(::, 0)
+    val w = solve(drmXtX, drmXty)
+    println(w)
 
-    println(XtX)
-
-    val beta = solve(XtX, Xty)
-    println(XtX)
-
-    val yFitted = (drmX %*% beta).collect(::, 0)
+    val yFitted = (drmX %*% w).collect(::, 0)
     println(yFitted)
 
     val sol = ols(drmX, y)
@@ -63,8 +58,8 @@ object CerealRegression {
     sol(::, 0)
   }
 
-  def goodnessOfFit(drmX: DrmLike[Int], beta: Vector, y: Vector) = {
-    val fittedY = (drmX %*% beta) collect (::, 0)
+  def goodnessOfFit(drmX: DrmLike[Int], w: Vector, y: Vector) = {
+    val fittedY = (drmX %*% w) collect (::, 0)
     (y - fittedY).norm(2)
   }
 

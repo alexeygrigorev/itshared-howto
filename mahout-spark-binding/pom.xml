@@ -10,6 +10,7 @@
     <slf4j.version>1.7.5</slf4j.version>
     <logback.version>1.0.13</logback.version>
     <mahout.math.version>0.10.0</mahout.math.version>
+    <spark.version>1.1.1</spark.version>
   </properties>
 
   <dependencies>
@@ -73,7 +74,7 @@
     <dependency> 
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_2.10</artifactId>
-      <version>1.1.1</version>
+      <version>${spark.version}</version>
     </dependency>
 
     <!-- Tests -->
@@ -81,6 +82,13 @@
       <groupId>junit</groupId>
       <artifactId>junit-dep</artifactId>
       <version>4.8.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_2.10</artifactId>
+      <version>2.2.4</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
