@@ -7,14 +7,13 @@ import org.apache.mahout.math.scalabindings.RLikeOps._
 import org.apache.mahout.math.drm.RLikeDrmOps._
 import org.apache.spark.SparkConf
 import org.apache.mahout.sparkbindings._
-
 import org.apache.spark.SparkContext
 import collection._
 import JavaConversions._
-
 import org.apache.mahout.math.decompositions.DQR._
 import org.apache.mahout.math.decompositions.DSPCA._
 import org.apache.mahout.math.decompositions.DSSVD._
+import scala.util.Random
 
 object YearPredictionMSD {
 
@@ -43,16 +42,16 @@ object YearPredictionMSD {
     val X = train(::, 1 until ncol)
     val y = train.viewColumn(0)
 
-    val w = qr_ols(add_bias(X), y)
+    val w = qrOls(addBias(X), y)
 
     val X_test = test(::, 1 until ncol)
     val y_test = test.viewColumn(0)
 
-    val error = goodnessOfFit(add_bias(X_test), w, y_test)
+    val error = goodnessOfFit(addBias(X_test), w, y_test)
     println("error ols", error)
 
-    val X_std = add_bias(standardize(X))
-    val X_test_std = add_bias(standardize(X_test))
+    val X_std = addBias(standardize(X))
+    val X_test_std = addBias(standardize(X_test))
     val ridgeFunc = ridge(X_std, y)
 
     var best_lambda = 0.0
@@ -69,10 +68,15 @@ object YearPredictionMSD {
     }
 
     println("best fit ridge", s"lambda = $best_lambda", best_fit)
+
+    val X_subset = center(sample(X, 5000, seed = 0x31337))
+    val pca = dimRed(X_subset, dim = 20)
+    val w_pca = ols(addBias(pca(center(X))), y)
+    val error_pca = goodnessOfFit(addBias(pca(center(X_test))), w_pca, y_test)
+    println("error pca", error_pca)
   }
 
-
-  def add_bias(drmX: DrmLike[Int]) = {
+  def addBias(drmX: DrmLike[Int]) = {
     drmX.mapBlock(drmX.ncol + 1) {
       case (keys, block) => {
         val block_new = block.like(block.nrow, block.ncol + 1)
@@ -84,6 +88,27 @@ object YearPredictionMSD {
         keys -> block_new
       }
     }
+  }
+
+  def center(drmX: DrmLike[Int])(implicit ctx: DistributedContext) = {
+    val mean = drmBroadcast(drmX.colMeans)
+
+    val res = drmX.mapBlock(drmX.ncol) {
+      case (keys, block) => {
+        val copy = block.cloned
+        copy.foreach(row => row := row - mean)
+        (keys, copy)
+      }
+    }
+
+    res
+  }
+
+  def center(mat: Matrix) = {
+    val mean = mat.colMeans
+    val mat_new = mat.cloned
+    mat_new.foreach(row => row := row - mean)
+    mat_new
   }
 
   def standardize(drmX: DrmLike[Int])(implicit ctx: DistributedContext) = {
@@ -109,7 +134,7 @@ object YearPredictionMSD {
     sol(::, 0)
   }
 
-  def qr_ols(drmX: DrmLike[Int], y: Vector) = {
+  def qrOls(drmX: DrmLike[Int], y: Vector) = {
     val QR = dqrThin(drmX)
     val Q = QR._1
     val R = QR._2
@@ -129,9 +154,36 @@ object YearPredictionMSD {
     }
   }
 
+  def dimRed(X_train: Matrix, dim: Int): DrmLike[Int] => DrmLike[Int] = {
+    val V = svd(X_train)._2
+    val V_red = V(::, 0 until dim)
+
+    def fit(X: DrmLike[Int]): DrmLike[Int] = {
+      X %*% V_red
+    }
+
+    fit
+  }
+
   def goodnessOfFit(drmX: DrmLike[Int], w: Vector, y: Vector) = {
     val fittedY = (drmX %*% w) collect (::, 0)
     (y - fittedY).norm(2)
+  }
+
+  def sample(drm: DrmLike[Int], size: Int, seed: Long = System.currentTimeMillis) = {
+    val nrow = drm.nrow.toInt
+    val rnd = new Random(seed)
+
+    val randomIdx = Seq.fill(size)(rnd.nextInt(nrow))
+    val Srows = randomIdx.map { i =>
+      val vec = new RandomAccessSparseVector(nrow)
+      vec.setQuick(i, 1)
+      vec
+    }
+
+    val S = new SparseRowMatrix(size, nrow)
+    S := Srows
+    S %*% drm
   }
 
 }

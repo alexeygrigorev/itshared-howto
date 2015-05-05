@@ -11,14 +11,14 @@ import org.apache.mahout.math.drm.RLikeDrmOps._
 import org.apache.mahout.sparkbindings._
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
-
 import collection._
 import JavaConversions._
+import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
 class LATest extends FunSuite {
 
-  test("add_bias") {
+  test("addBias") {
     val conf = new SparkConf()
       .setAppName("Cereals OLS Regression")
       .setMaster("local[*]")
@@ -39,7 +39,7 @@ class LATest extends FunSuite {
       (1, 3, 3, 13, 4, 45.811716))
 
     val drmData = drmParallelize(matrix, numPartitions = 2)
-    val actual = YearPredictionMSD.add_bias(drmData).collect
+    val actual = YearPredictionMSD.addBias(drmData).collect
 
     assert((actual - expected).norm < 0.001)
   }
@@ -79,6 +79,42 @@ class LATest extends FunSuite {
     val drmData = drmParallelize(matrix, numPartitions = 2)
     val actual = YearPredictionMSD.standardize(drmData).collect
 
+    assert((actual - expected).norm < 0.001)
+  }
+
+  test("sample") {
+    val conf = new SparkConf()
+      .setAppName("Cereals OLS Regression")
+      .setMaster("local[*]")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .set("spark.kryo.registrator", "org.apache.mahout.sparkbindings.io.MahoutKryoRegistrator")
+    implicit val sc = new SparkDistributedContext(new SparkContext(conf))
+
+    val matrix = dense(
+      (2, 2, 10.5, 10, 29.509541), // Apple Cinnamon Cheerios
+      (1, 2, 12, 12, 18.042851), // Cap'n'Crunch
+      (1, 1, 12, 13, 22.736446), // Cocoa Puffs
+      (2, 1, 11, 13, 32.207582), // Froot Loops
+      (1, 2, 12, 11, 21.871292), // Honey Graham Ohs
+      (2, 1, 16, 8, 36.187559), // Wheaties Honey Gold
+      (6, 2, 17, 1, 50.764999), // Cheerios
+      (3, 2, 13, 7, 40.400208), // Clusters
+      (3, 3, 13, 4, 45.811716)) // Great Grains Pecan)
+
+    val drmData = drmParallelize(matrix, numPartitions = 2)
+    val size = 3
+    val actual = YearPredictionMSD.sample(drmData, size, seed = 0)
+
+    val rnd = new Random(seed = 0)
+
+    val expected = matrix.like(size, matrix.ncol)
+    val randomIdx = Seq.fill(size)(rnd.nextInt(matrix.nrow))
+    val rowIdxIterator = randomIdx.iterator
+    expected(0, ::) := matrix(rowIdxIterator.next, ::)
+    expected(1, ::) := matrix(rowIdxIterator.next, ::)
+    expected(2, ::) := matrix(rowIdxIterator.next, ::)
+
+    println(actual)
     assert((actual - expected).norm < 0.001)
   }
 
